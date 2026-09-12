@@ -1,0 +1,22 @@
+import { Router } from 'express';
+import { requireAuth } from '../middleware/auth.js';
+import { requireRoles } from '../middleware/rbac.js';
+import { validate } from '../lib/validation.js';
+import { companyInput, companyPatch, companyStatus, driveInput, drivePatch, driveStatus, idOnly, querySchema } from '../validators/placement.js';
+import { companies, company, companyStatus as changeCompanyStatus, drives, drive, driveStatus as changeDriveStatus, eligibleStudents, patchCompany, patchDrive, postCompany, postDrive, studentDrives, studentEligibility } from '../controllers/placementController.js';
+
+const managers = requireRoles('PLACEMENT_OFFICER', 'PLACEMENT_STAFF', 'SUPER_ADMIN');
+export const placementRouter = Router();
+placementRouter.get('/student/drives', requireAuth, requireRoles('STUDENT'), studentDrives);
+placementRouter.get('/student/drives/:id/eligibility', requireAuth, requireRoles('STUDENT'), studentEligibility);
+placementRouter.get('/placement/companies', requireAuth, managers, validate(querySchema), companies);
+placementRouter.post('/placement/companies', requireAuth, managers, validate(companyInput), postCompany);
+placementRouter.get('/placement/companies/:id', requireAuth, managers, validate(idOnly), company);
+placementRouter.patch('/placement/companies/:id', requireAuth, managers, validate(companyPatch), patchCompany);
+placementRouter.patch('/placement/companies/:id/status', requireAuth, managers, validate(companyStatus), changeCompanyStatus);
+placementRouter.get('/placement/drives', requireAuth, managers, validate(querySchema), drives);
+placementRouter.post('/placement/drives', requireAuth, managers, validate(driveInput), postDrive);
+placementRouter.get('/placement/drives/:id', requireAuth, managers, validate(idOnly), drive);
+placementRouter.patch('/placement/drives/:id', requireAuth, managers, validate(drivePatch), patchDrive);
+placementRouter.patch('/placement/drives/:id/status', requireAuth, managers, validate(driveStatus), changeDriveStatus);
+placementRouter.get('/placement/drives/:id/eligible-students', requireAuth, managers, validate(querySchema), eligibleStudents);

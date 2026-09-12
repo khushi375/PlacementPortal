@@ -1,0 +1,26 @@
+{
+  "dependencies": {
+    "@tanstack/react-query": "^5.102.8",
+    "axios": "^1.20.0",
+    "firebase": "^12.19.0",
+    "lucide-react": "^1.45.0",
+    "react-router-dom": "^7.18.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "tailwindcss": "^4.3.3"
+  },
+  "name": "placementportal",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "npm.cmd --prefix frontend run build && npm.cmd --prefix backend run build",
+    "lint": "npm.cmd --prefix frontend run lint && npm.cmd --prefix backend run lint",
+    "test": "echo \"Phase 1 automated tests are not configured yet\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}

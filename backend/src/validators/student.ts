@@ -1,0 +1,15 @@
+import { z } from 'zod';
+
+const url = z.string().url().max(300);
+const nonNegative = (max: number) => z.number().min(0).max(max);
+const profileInput = z.object({
+  displayName: z.string().trim().min(2).max(120).optional(), phone: z.string().trim().regex(/^\+?[0-9 ()-]{7,20}$/).optional(),
+  dateOfBirth: z.coerce.date().max(new Date()).optional(), address: z.object({ line1: z.string().trim().max(160).optional(), city: z.string().trim().max(80).optional(), state: z.string().trim().max(80).optional(), postalCode: z.string().trim().max(20).optional() }).optional(),
+  profilePhotoUrl: url.optional(), rollNumber: z.string().trim().min(2).max(40).optional(), course: z.string().regex(/^[a-f\d]{24}$/i).optional(), department: z.string().regex(/^[a-f\d]{24}$/i).optional(), batch: z.string().regex(/^[a-f\d]{24}$/i).optional(), graduationYear: z.number().int().min(2000).max(2200).optional(),
+  cgpa: nonNegative(10).optional(), tenthPercentage: nonNegative(100).optional(), twelfthPercentage: nonNegative(100).optional(), backlogs: z.number().int().min(0).max(50).optional(), activeBacklogs: z.number().int().min(0).max(50).optional(), academicGaps: z.number().int().min(0).max(20).optional(),
+  skills: z.array(z.string().trim().min(1).max(80)).max(100).optional(), projects: z.array(z.object({ name: z.string().trim().min(1).max(120), description: z.string().trim().max(1000).optional(), url: url.optional() })).max(30).optional(), certifications: z.array(z.object({ name: z.string().trim().min(1).max(120), issuer: z.string().trim().max(120).optional(), issuedOn: z.coerce.date().optional(), url: url.optional() })).max(30).optional(), internships: z.array(z.object({ organization: z.string().trim().min(1).max(120), role: z.string().trim().max(120).optional(), startDate: z.coerce.date().optional(), endDate: z.coerce.date().optional(), description: z.string().trim().max(1000).optional() })).max(20).optional(), achievements: z.array(z.object({ title: z.string().trim().min(1).max(120), description: z.string().trim().max(1000).optional(), achievedOn: z.coerce.date().optional() })).max(30).optional(), social: z.object({ github: url.optional(), linkedin: url.optional(), portfolio: url.optional() }).optional(),
+}).strict();
+
+export const profileSchema = z.object({ body: profileInput, params: z.record(z.string(), z.unknown()), query: z.record(z.string(), z.unknown()) });
+export const semesterSchema = z.object({ body: z.object({ semester: z.number().int().min(1).max(20), sgpa: nonNegative(10), credits: z.number().min(0).max(300).optional() }).strict(), params: z.record(z.string(), z.unknown()), query: z.record(z.string(), z.unknown()) });
+export const idSchema = z.object({ body: z.record(z.string(), z.unknown()), params: z.object({ id: z.string().regex(/^[a-f\d]{24}$/i) }), query: z.record(z.string(), z.unknown()) });

@@ -1,0 +1,26 @@
+import { Router } from 'express';
+import multer from 'multer';
+import { requireVerifiedStudent } from '../middleware/auth.js';
+import { validate } from '../lib/validation.js';
+import { idSchema, profileSchema, semesterSchema } from '../validators/student.js';
+import { archiveResume, getAcademics, getCompletion, getNotifications, getProfile, getResumes, getSemesters, postSemester, putAcademics, putProfile, putSemester, readNotification, removeSemester, setPrimaryResume, uploadProfilePhoto, uploadResume } from '../controllers/studentController.js';
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024, files: 1 }, fileFilter: (_request, file, callback) => callback(null, file.fieldname === 'resume' ? file.mimetype === 'application/pdf' : ['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)) });
+export const studentRouter = Router();
+studentRouter.use(requireVerifiedStudent);
+studentRouter.get('/profile', getProfile);
+studentRouter.put('/profile', validate(profileSchema), putProfile);
+studentRouter.get('/profile/completion', getCompletion);
+studentRouter.get('/academics', getAcademics);
+studentRouter.put('/academics', validate(profileSchema), putAcademics);
+studentRouter.get('/academics/semesters', getSemesters);
+studentRouter.post('/academics/semesters', validate(semesterSchema), postSemester);
+studentRouter.put('/academics/semesters/:id', validate(semesterSchema), putSemester);
+studentRouter.delete('/academics/semesters/:id', validate(idSchema), removeSemester);
+studentRouter.get('/resumes', getResumes);
+studentRouter.post('/resumes', upload.single('resume'), uploadResume);
+studentRouter.patch('/resumes/:id/primary', validate(idSchema), setPrimaryResume);
+studentRouter.delete('/resumes/:id', validate(idSchema), archiveResume);
+studentRouter.post('/profile/photo', upload.single('photo'), uploadProfilePhoto);
+studentRouter.get('/notifications', getNotifications);
+studentRouter.patch('/notifications/:id/read', validate(idSchema), readNotification);
