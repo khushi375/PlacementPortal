@@ -1,0 +1,11 @@
+import { z } from 'zod';
+const id = z.string().regex(/^[a-f\d]{24}$/i);
+const envelope = (body: z.ZodTypeAny, params: z.ZodTypeAny = z.record(z.string(), z.unknown()), query: z.ZodTypeAny = z.record(z.string(), z.unknown())) => z.object({ body, params, query });
+export const applyInput = envelope(z.object({ resumeId: id.optional() }).strict(), z.object({ id }), z.record(z.string(), z.unknown()));
+export const idInput = envelope(z.record(z.string(), z.unknown()), z.object({ id }), z.record(z.string(), z.unknown()));
+export const statusInput = envelope(z.object({ status: z.enum(['UNDER_REVIEW', 'SHORTLISTED', 'REJECTED', 'WAITLISTED', 'SELECTED', 'WITHDRAWN', 'PLACED']), note: z.string().max(1000).optional(), rejectionReason: z.string().max(1000).optional() }), z.object({ id }), z.record(z.string(), z.unknown()));
+export const interviewInput = envelope(z.object({ drive: id, application: id, selectionRoundOrder: z.number().int().positive().optional(), selectionRoundName: z.string().max(120).optional(), type: z.string().min(1).max(120), date: z.coerce.date(), startTime: z.coerce.date().optional(), endTime: z.coerce.date().optional(), mode: z.enum(['ONLINE', 'OFFLINE', 'HYBRID']), venueOrLink: z.string().max(500).optional(), instructions: z.string().max(2000).optional() }).strict());
+export const interviewStatusInput = envelope(z.object({ status: z.enum(['SCHEDULED', 'COMPLETED', 'CANCELLED', 'RESCHEDULED']) }), z.object({ id }), z.record(z.string(), z.unknown()));
+export const attendanceInput = envelope(z.object({ studentId: id, status: z.enum(['PRESENT', 'ABSENT', 'EXCUSED', 'NOT_MARKED']), remarks: z.string().max(500).optional() }), z.object({ id }), z.record(z.string(), z.unknown()));
+export const resultInput = envelope(z.object({ application: id, status: z.enum(['SELECTED', 'NOT_SELECTED', 'WAITLISTED']), packageCtc: z.number().min(0).optional(), joiningDate: z.coerce.date().optional(), notes: z.string().max(1000).optional() }).strict());
+export const documentStatusInput = envelope(z.object({ status: z.enum(['PENDING', 'VERIFIED', 'REJECTED', 'REUPLOAD_REQUIRED']), reviewComment: z.string().max(1000).optional() }), z.object({ id }), z.record(z.string(), z.unknown()));

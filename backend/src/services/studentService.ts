@@ -16,7 +16,11 @@ function hasValue(value: unknown) {
 export async function getOrCreateStudentProfile(userId: string) {
   const user = await User.findById(userId).lean();
   if (!user) throw new AppError(404, 'User account not found', 'USER_NOT_FOUND');
-  const profile = await StudentProfile.findOneAndUpdate({ user: userId }, { $setOnInsert: { user: userId } }, { new: true, upsert: true });
+  let profile = await StudentProfile.findOne({ user: userId }).lean();
+  if (!profile) {
+    const newProfile = await StudentProfile.create({ user: userId });
+    profile = newProfile.toObject();
+  }
   return { user, profile };
 }
 
@@ -31,8 +35,9 @@ export function getCompletion(profile: Record<string, unknown>, hasResume: boole
 
 export async function getStudentOverview(userId: string) {
   const { user, profile } = await getOrCreateStudentProfile(userId);
+  if (!profile) throw new AppError(404, 'Student profile not found', 'PROFILE_NOT_FOUND');
   const hasResume = await Resume.exists({ student: profile._id, status: 'ACTIVE' });
-  const completion = getCompletion(profile.toObject(), Boolean(hasResume));
+  const completion = getCompletion(profile, Boolean(hasResume));
   const [academicRecords, resumes] = await Promise.all([
     AcademicRecord.find({ student: profile._id }).sort({ semester: 1 }).lean(),
     Resume.find({ student: profile._id }).sort({ createdAt: -1 }).select('-storageKey').lean(),
@@ -42,6 +47,7 @@ export async function getStudentOverview(userId: string) {
 
 export async function updateStudentProfile(userId: string, input: Record<string, unknown>) {
   const { profile } = await getOrCreateStudentProfile(userId);
+  if (!profile) throw new AppError(404, 'Student profile not found', 'PROFILE_NOT_FOUND');
   const allowed = ['phone', 'profilePhotoUrl', 'dateOfBirth', 'address', 'rollNumber', 'course', 'department', 'batch', 'graduationYear', 'cgpa', 'tenthPercentage', 'twelfthPercentage', 'backlogs', 'activeBacklogs', 'academicGaps', 'skills', 'projects', 'certifications', 'internships', 'achievements', 'social'];
   const update = Object.fromEntries(Object.entries(input).filter(([key]) => allowed.includes(key)));
   const updated = await StudentProfile.findByIdAndUpdate(profile._id, { $set: update, $setOnInsert: { verificationStatus: 'UNVERIFIED' } }, { new: true, runValidators: true });
@@ -55,6 +61,7 @@ export async function updateAcademics(userId: string, input: Record<string, unkn
 
 export async function getStudentId(userId: string) {
   const { profile } = await getOrCreateStudentProfile(userId);
+  if (!profile) throw new AppError(404, 'Student profile not found', 'PROFILE_NOT_FOUND');
   return profile._id;
 }
 

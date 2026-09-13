@@ -7,9 +7,10 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "lint": "tsc --noEmit -p tsconfig.json",
-    "test": "vitest run"
+    "test": "vitest run src"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "cloudinary": "^2.11.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",

@@ -3,7 +3,7 @@ import { auth } from '../lib/firebase';
 import type { Notification, StudentOverview } from '../features/student/types';
 import type { EligibilityResult, StudentDrive } from '../features/student/placementTypes';
 
-export const api = axios.create({ baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api/v1' });
+export const api = axios.create({ baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:5000/api/v1' });
 api.interceptors.request.use(async (config) => {
   if (auth.currentUser) config.headers.Authorization = `Bearer ${await auth.currentUser.getIdToken()}`;
   return config;

@@ -4,12 +4,19 @@ import { AppError } from './errors.js';
 
 export function validate(schema: ZodType): RequestHandler {
   return (request, _response, next) => {
-    const result = schema.safeParse({ body: request.body, params: request.params, query: request.query }) as { success: true; data: { body: unknown } } | { success: false };
-    if (!result.success) {
+    try {
+      const result = schema.safeParse({ body: request.body, params: request.params, query: request.query }) as { success: true; data: { body: unknown } } | { success: false };
+      if (!result.success) {
+        next(new AppError(400, 'Request validation failed', 'VALIDATION_ERROR'));
+        return;
+      }
+      // Only set the body if it was defined in the schema
+      if (result.data.body !== undefined) {
+        request.body = result.data.body;
+      }
+      next();
+    } catch (error) {
       next(new AppError(400, 'Request validation failed', 'VALIDATION_ERROR'));
-      return;
     }
-    request.body = result.data.body;
-    next();
   };
 }

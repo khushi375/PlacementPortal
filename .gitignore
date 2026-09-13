@@ -4,5 +4,13 @@ node_modules/
 !.env.example
 dist/
 build/
+coverage/
 *.log
 npm-debug.log*
+*.pem
+*serviceAccount*.json
+*firebase-adminsdk*.json
+google-services.json
+frontend/.env
+backend/.env
+

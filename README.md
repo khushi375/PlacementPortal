@@ -1,66 +1,125 @@
 # Nexora Placement Portal
 
-A production-oriented university placement operating system for one university, with exactly two portals: Student and Placement Center.
+A university placement operating system for a single institution. There are two portals only:
 
-## Phase 1 status
+- **Student portal** — profile, academics, resumes, published drives, applications, interviews, attendance, documents, results, calendar, notifications, preparation, and grievances.
+- **Placement Center** — companies, drives, applications, interviews, attendance, documents, results, TPO command center, communication, analytics, and preparation resources.
 
-Phase 1 establishes the technical foundation only:
+There is no recruiter portal.
 
-- React + TypeScript + Vite frontend shell
-- Express + TypeScript backend API
-- Firebase Authentication token verification boundary
-- MongoDB/Mongoose domain model foundation
-- Role-based authorization for `STUDENT`, `PLACEMENT_OFFICER`, `PLACEMENT_STAFF`, and `SUPER_ADMIN`
-- Helmet, secure CORS, rate limiting, Mongo query sanitization, request IDs, safe errors, and centralized Zod validation
-- Audit log service
-- Responsive Student and Placement Center navigation shells
-- Real-data-safe zero and empty states; no fabricated operational metrics
+Eligibility is **deterministic and backend-only**. Gemini AI provides coaching and explanations only. It does not calculate eligibility, change application status, or make official placement decisions. The Gemini API key is **server-side only**.
 
-Phase 2 student features and Phase 3 company, drive, and deterministic eligibility foundations are implemented. Application, interview, attendance, analytics, communication, and AI lifecycle features remain intentionally unimplemented.
-
-## Phase 3
-
-Placement Center managers can manage companies and placement drives through the protected `/api/v1/placement` API. Drives reference companies, define structured salary and ordered selection rounds, and have controlled `DRAFT -> PUBLISHED -> CLOSED -> ARCHIVED` transitions. Students can read only future published drives through `/api/v1/student/drives`.
-
-Eligibility is calculated only by `backend/src/services/eligibilityService.ts`. It supports CGPA, department, course, batch, graduation year, 10th and 12th percentages, total and active backlogs, and normalized required skills with `ALL` or `ANY` matching. Every result includes a status and rule-by-rule reasons. No AI or frontend rule evaluation is used.
+This repository is application code. It has not been deployed from this phase of work.
 
 ## Architecture
 
 ```text
-frontend/src
-  App.tsx                 Two-portal shell and navigation
-  App.css                 Responsive product styling
-
-backend/src
-  config/                 Validated environment configuration
-  lib/                    Firebase, MongoDB, validation, audit, errors
-  middleware/             Authentication, RBAC, request context, errors
-  models/                 Mongoose domain schemas and indexes
-  routes/                 Versioned API route modules
-  services/               Reserved for feature services
-  types/                  Express auth context and shared backend types
+frontend/     React + TypeScript + Vite student and Placement Center UI
+backend/      Express + TypeScript API, MongoDB, Firebase Admin, Gemini
 ```
 
-The backend is the authority for authentication and authorization. Frontend route protection must never be treated as a security boundary. Firebase provides identity; the local `User` document provides the application role and active-account state.
+Firebase Authentication identifies the user. The local `User` document is the source of application role and active-account state. Frontend navigation is not a security boundary.
 
-## Setup
+Roles: `STUDENT`, `PLACEMENT_OFFICER`, `PLACEMENT_STAFF`, `SUPER_ADMIN`.
+
+## What the product covers
+
+| Area | Behavior |
+| --- | --- |
+| Authentication / RBAC | Firebase ID tokens, verified on the API, role checks on every protected route |
+| Companies and drives | Placement Center CRUD, drive lifecycle `DRAFT → PUBLISHED → CLOSED → ARCHIVED` |
+| Eligibility | Central engine in `backend/src/services/eligibilityService.ts` (CGPA, department, course, batch, graduation year, 10th/12th, backlogs, skills ALL/ANY). Rule-by-rule reasons. No AI. |
+| Applications | Student apply/withdraw; staff review and status transitions |
+| Interviews | Staff schedule/update; students see only their own interviews |
+| Attendance | Staff mark attendance; students see their own records |
+| Documents | Student upload; staff review. Resume PDFs are stored privately; content is not parsed for AI |
+| TPO command center | Live operational counts and recent activity |
+| Communication | Staff notices to students; student grievances |
+| Analytics | Counts and breakdowns from stored records only |
+| Preparation resources | Staff create/edit/publish/unpublish/delete. Students see **published** resources only |
+| Preparation tracking | Students mark their own completion; progress is student-scoped |
+| Calendar | Authenticated student's interview date/time, company/drive, round, status, mode |
+| Preparation brief | Guidance from existing eligibility, missing skills, required skills, rounds, and the student's interviews. Does not change eligibility |
+| Gemini AI | Resume coach, interview practice, eligibility explanation for the authenticated student |
+
+## AI security model
+
+- Provider: Google Gemini (`@google/generative-ai`) on the backend only
+- Routes: `POST /api/v1/student/ai/*`, `STUDENT` role, authentication required
+- 10 AI requests per minute per authenticated user, in addition to the global API rate limit
+- 20s timeout, 1200 max output tokens, bounded prompt size
+- Missing `AI_API_KEY` returns HTTP 503 `AI_NOT_CONFIGURED` (no fake coaching)
+- Provider errors are sanitized; keys and stack traces are not returned to clients
+- Students cannot request another student's interview
+- AI receives only the caller's profile/drive/interview facts; it cannot write eligibility or application status
+
+## Local setup
 
 Prerequisites: Node.js 20+, npm, MongoDB, and a Firebase project.
 
-1. Copy `backend/.env.example` to `backend/.env` and set Firebase and MongoDB values.
-2. Install packages with `npm.cmd install` in the root, `npm.cmd --prefix frontend install`, and `npm.cmd --prefix backend install`.
-3. Start the frontend with `npm.cmd --prefix frontend run dev`.
-4. Start the API with `npm.cmd --prefix backend run dev`.
+1. Copy `backend/.env.example` to `backend/.env` and fill in real values locally. Never commit `.env`.
+2. Copy `frontend/.env.example` to `frontend/.env` for the public Firebase web config and API URL.
+3. Install: `npm --prefix frontend install` and `npm --prefix backend install`.
+4. Frontend: `npm --prefix frontend run dev`
+5. API: `npm --prefix backend run dev`
 
-The API health check is available at `http://localhost:4000/health`.
+Health check: `GET http://localhost:4000/health`  
+Response includes `aiConfigured: true|false` and never includes the API key.
 
-## Validation
+## Environment variables
+
+### Backend (`backend/.env`)
+
+| Variable | Purpose |
+| --- | --- |
+| `NODE_ENV` | `development`, `test`, or `production` |
+| `PORT` | API port (default `4000`) |
+| `MONGODB_URI` | MongoDB connection string |
+| `FRONTEND_ORIGIN` | Allowed CORS origin (exact frontend URL) |
+| `FIREBASE_PROJECT_ID` | Firebase Admin project |
+| `FIREBASE_CLIENT_EMAIL` | Firebase Admin client email |
+| `FIREBASE_PRIVATE_KEY` | Firebase Admin private key |
+| `CLOUDINARY_CLOUD_NAME` | Optional private file storage |
+| `CLOUDINARY_API_KEY` | Optional, server-side only |
+| `CLOUDINARY_API_SECRET` | Optional, server-side only |
+| `AI_PROVIDER` | `GEMINI` |
+| `AI_API_KEY` | Gemini key, **backend only** |
+| `AI_MODEL` | e.g. `gemini-2.0-flash` |
+
+Do not prefix `AI_API_KEY` with `VITE_`. Do not put Admin, Cloudinary, or Gemini secrets in frontend env files.
+
+### Frontend (`frontend/.env`)
+
+| Variable | Purpose |
+| --- | --- |
+| `VITE_API_URL` | Backend API base, e.g. `http://localhost:4000/api/v1` |
+| `VITE_FIREBASE_API_KEY` | Firebase **web** API key (public client config) |
+| `VITE_FIREBASE_AUTH_DOMAIN` | Firebase auth domain |
+| `VITE_FIREBASE_PROJECT_ID` | Firebase project id |
+| `VITE_FIREBASE_APP_ID` | Firebase app id |
+
+## Build and test commands
+
+From the repository root:
 
 ```text
-npm.cmd --prefix frontend run build
-npm.cmd --prefix frontend run lint
-npm.cmd --prefix backend run build
-npm.cmd --prefix backend run lint
+npm test                         # backend Vitest suite
+npm run build                    # frontend production build, then backend tsc
+npm run lint                     # frontend oxlint, then backend typecheck
 ```
 
-No recruiter portal or recruiter account model is part of this product.
+From packages:
+
+```text
+npm --prefix frontend run build
+npm --prefix frontend run lint
+npm --prefix frontend run dev
+npm --prefix backend run build
+npm --prefix backend run lint
+npm --prefix backend test
+npm --prefix backend run dev
+```
+
+## Production notes
+
+The API uses Helmet, explicit CORS (`FRONTEND_ORIGIN` only), global rate limiting, Zod validation, mongo sanitization, authenticated RBAC, and safe JSON errors (no stack traces or secrets). Put real secrets in the hosting environment, not in the repo. This phase does not deploy the application.
